@@ -1,0 +1,52 @@
+# Blueprint Render : base PostgreSQL + backend FastAPI (offre gratuite).
+# Dashboard Render → New → Blueprint → choisir ce repo. Les variables "sync: false" sont demandées à la création.
+databases:
+  - name: tourism-db
+    plan: free
+    region: frankfurt
+    databaseName: tourism
+    user: tourism
+    # Aucun accès depuis Internet ; ajouter son IP ici (ou dans Networking) pour inspecter la base avec DBeaver/psql
+    ipAllowList: []
+
+services:
+  - type: web
+    name: tourism-agent-backend
+    runtime: docker
+    plan: free
+    region: frankfurt # même région que la base : l'URL interne n'est valable qu'entre services d'une même région
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /ready # vérifie aussi la connexion à PostgreSQL
+    autoDeploy: true
+    envVars:
+      # URL interne de la base, câblée automatiquement
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tourism-db
+          property: connectionString
+      - key: DATABASE_POOL_MAX_SIZE
+        value: "5"
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: MODEL_NAME
+        sync: false
+      # Secret aléatoire généré par Render ; à recopier dans BACKEND_API_KEY du frontend
+      - key: API_KEY
+        generateValue: true
+      # URL publique du frontend, sans slash final (plusieurs : séparées par des virgules)
+      - key: CORS_ORIGINS
+        sync: false
+      - key: LOG_LEVEL
+        value: INFO
+      - key: MAX_USER_MESSAGE_LENGTH
+        value: "300"
+      # Traçage LangSmith (optionnel : laisser vide)
+      - key: LANGSMITH_API_KEY
+        sync: false
+      - key: LANGSMITH_TRACING
+        sync: false
+      - key: LANGSMITH_PROJECT
+        sync: false
+      - key: LANGSMITH_ENDPOINT
+        value: https://eu.api.smith.langchain.com

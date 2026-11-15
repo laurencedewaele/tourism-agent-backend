@@ -31,7 +31,11 @@ async def open_postgres_checkpointer(stack: AsyncExitStack, app: FastAPI, settin
     # Création du pool de connexions PostgreSQL
     pool = AsyncConnectionPool(
         conninfo=settings.database_url,
+        min_size=1,
         max_size=settings.database_pool_max_size,
+        # Vérifie chaque connexion avant de la prêter : celles coupées côté serveur (veille de l'hébergeur,
+        # redémarrage de la base) sont remplacées au lieu de faire échouer la requête
+        check=AsyncConnectionPool.check_connection,
         # Réglages requis par AsyncPostgresSaver
         kwargs={"autocommit": True, "prepare_threshold": 0, "row_factory": dict_row},
         open=False, # le pool n'est pas ouvert à la construction, car l'ouverture doit être "awaitée"
